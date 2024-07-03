@@ -59,6 +59,26 @@ wss.on('connection', ws => {
     env: process.env
   });
 
+  // List of initial commands to execute
+  const initialCommands = [
+    'docker run -it fedorapostgres /bin/bash',
+    'su - postgres',
+    '/usr/pgsql-16/bin/pg_ctl initdb',
+    '/usr/pgsql-16/bin/pg_ctl -D /var/lib/pgsql/16/data/ -l logfile start',
+    'exit',
+    'export PATH=$PATH:/usr/pgsql-16/bin/',
+    'cd /usr/local/src',
+    'make',
+    'make install',
+    'clear',
+    'psql -U postgres'
+  ];
+
+  // Execute initial commands
+  initialCommands.forEach(cmd => {
+    ptyProcess.write(cmd + '\r');
+  });
+
   ptyProcess.on('data', data => {
     ws.send(data);
   });
