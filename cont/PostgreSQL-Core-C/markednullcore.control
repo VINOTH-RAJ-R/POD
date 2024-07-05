@@ -1,0 +1,3 @@
+# marked null core extension
+comment = 'Marked null types: INT, DATE, TEXT and NUMERIC.'
+default_version = '0.1'

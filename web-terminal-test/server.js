@@ -3,48 +3,12 @@ const path = require('path');
 const http = require('http');
 const WebSocket = require('ws');
 const pty = require('node-pty');
-const passport = require('passport');
-const LocalStrategy = require('passport-local').Strategy;
 const session = require('express-session');
-const bcrypt = require('bcrypt');
-
-// Dummy users database
-const users = [{ id: 1, username: 'user', password: bcrypt.hashSync('password', 10) }];
-
-passport.use(new LocalStrategy((username, password, done) => {
-  const user = users.find(u => u.username === username);
-  if (!user) return done(null, false, { message: 'Incorrect username.' });
-  if (!bcrypt.compareSync(password, user.password)) return done(null, false, { message: 'Incorrect password.' });
-  return done(null, user);
-}));
-
-passport.serializeUser((user, done) => done(null, user.id));
-passport.deserializeUser((id, done) => {
-  const user = users.find(u => u.id === id);
-  done(null, user);
-});
 
 const app = express();
 app.use(session({ secret: 'secret', resave: false, saveUninitialized: false }));
-app.use(passport.initialize());
-app.use(passport.session());
+
 app.use(express.static(path.join(__dirname, 'public')));
-
-app.post('/login', passport.authenticate('local', {
-  successRedirect: '/',
-  failureRedirect: '/login',
-}));
-
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
-app.get('/', (req, res, next) => {
-  if (req.isAuthenticated()) return next();
-  res.redirect('/login');
-}, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
 
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
@@ -67,12 +31,19 @@ wss.on('connection', ws => {
     '/usr/pgsql-16/bin/pg_ctl -D /var/lib/pgsql/16/data/ -l logfile start',
     'exit',
     'export PATH=$PATH:/usr/pgsql-16/bin/',
-    'cd /usr/local/src',
+    'cd /usr/local/src/PostgresSQL-Core-C/',
     'make',
     'make install',
     'clear',
-    'psql -U postgres'
-  ];
+    'psql -U postgres',
+    'create extension markednullcore;',
+    'CREATE TABLE employees_marked (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, department VARCHAR(50) NOT NULL, salary int, phone_number text, emergency_contact text);',
+    "INSERT INTO employees_marked (name, department, salary, phone_number, emergency_contact) VALUES ('John Doe', 'Sales', 50000, '123-456-7890', 'Jane Doe'),('Jane Smith', 'Marketing', 55000, NULL, 'John Smith'),('Bob Johnson', 'IT', NULL, '987-654-3210', NULL),('Alice Brown', 'HR', 52000, NULL, NULL),('Charlie Wilson', 'Sales', 48000, '555-123-4567', 'Sarah Wilson'),('David Lee', 'IT', NULL, NULL, NULL),('Mark Walls', 'HR', 55000, '333-444-5555', 'John Doe');",
+    '\\q',
+    'clear',
+    'psql -U postgres',
+];
+
 
   // Execute initial commands
   initialCommands.forEach(cmd => {
@@ -95,4 +66,3 @@ wss.on('connection', ws => {
 server.listen(8080, () => {
   console.log('Server is listening on http://localhost:8080');
 });
-

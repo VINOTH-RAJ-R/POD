@@ -1,0 +1,1 @@
+select pg_size_pretty(bs), pg_size_pretty(ms), (ms::numeric/bs)-1::numeric overhead from (select pg_database_size('tpcds_1gb_notmarked') bs, pg_database_size('tpcds_1gb_marked') ms) t;
